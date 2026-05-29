@@ -1,37 +1,46 @@
 # zero410-NTLogin
 
-Fork proprietario di [DeepSignalTech/NinjaTraderAutoLogin V1.0](https://github.com/DeepSignalTech/NinjaTraderAutoLogin/releases/tag/V1.0) con fix per ambienti high-DPI.
+Proprietary fork of [DeepSignalTech/NinjaTraderAutoLogin V1.0](https://github.com/DeepSignalTech/NinjaTraderAutoLogin/releases/tag/V1.0) with a fix for high-DPI environments.
 
-Parte della pipeline **NT Auto Export** documentata in `TradingHub/scripts/nt-auto-export/NT_AUTO_EXPORT_PIPELINE.md`.
+Part of the **NT Auto Export** pipeline (private project; this fork is the auto-login component).
 
-## Differenza dall'upstream
+## Difference from upstream
 
-L'upstream V1.0 inserisce il focus nel campo password tramite click a coordinate fisse (`Left+30, Top+210` rispetto al top-left della finestra). Questo approccio fallisce su display ad alto DPI scaling (es. notebook con scaling 150%): le coordinate non vengono riscalate, il click cade fuori dal campo password, l'auto-login non riesce.
+Upstream V1.0 focuses the password field by clicking at fixed pixel offsets (`Left+30, Top+210` from the window's top-left corner). On high-DPI displays (e.g. notebooks at 150% scaling) those offsets are not rescaled, the click misses the password field, and auto-login fails silently.
 
-**Fix (D13):** sostituito il click a coordinate con sequenza di 3 `SendKeys.SendWait("{TAB}")` per portare il focus nel campo password. Approccio DPI-independent, multi-monitor-safe, indipendente dalla posizione e dimensione della finestra. Ordine TAB verificato empiricamente su NinjaTrader 8.
+**Fix:** the coordinate-based click is replaced with three `SendKeys.SendWait("{TAB}")` calls, focusing the password field via keyboard navigation. The result is DPI-independent, multi-monitor-safe, and independent of window size or position. Tab order was verified empirically on NinjaTrader 8:
 
-## Modifiche al sorgente upstream
+- TAB 1 → initial focus moves into the form
+- TAB 2 → username field (typically already filled)
+- TAB 3 → password field (target)
 
-Unica modifica: `NTLogin/Program.cs` nella sezione di iniezione password. Tracciata con commento `zero410 fix (D13)` nel codice.
+## Changes to upstream source
 
-Nessun altro file modificato. La logica originale di avvio NinjaTrader, polling del processo, gestione clipboard e invio Enter resta invariata.
+Single file modified: `NTLogin/Program.cs`, password injection section. Tagged with comment `zero410 fix (D13)` in the source.
 
-## Uso
+Dead code was also removed (no longer referenced after the fix): `ButtonClick`, `SetCursorPos`, `mouse_event` (and its `MOUSEEVENTF_*` constants), `GetWindowRect`, the `RECT` struct. Only `SetForegroundWindow` is retained from the original Win32 interop, since it is still used to bring the NinjaTrader window to the foreground.
 
-Identico all'upstream:
-NTLogin.exe "LOGIN_NAME" "PASSWORD"
+No other source file was modified.
 
-oppure con path NT custom:
-NTLogin.exe "LOGIN_NAME" "PASSWORD" "C:\Program Files\NinjaTrader 8\bin\NinjaTrader.exe"
+## Usage
 
-Vedi `README.md` originale di upstream per dettagli sull'uso e creazione shortcut Windows.
+Identical to upstream:NTLogin.exe "LOGIN_NAME" "PASSWORD"
 
-## Licenza
+Optionally, override the NinjaTrader executable path (default: `C:\Program Files\NinjaTrader 8\bin\NinjaTrader.exe`):NTLogin.exe "LOGIN_NAME" "PASSWORD" "C:\custom\path\NinjaTrader.exe"
 
-Mantenuta MIT (eredita da upstream). Vedi `LICENSE`.
+The `LOGIN_NAME` argument is a placeholder for forward compatibility; the application currently assumes the login name is already remembered by the NinjaTrader login dialog and only injects the password.
 
-## Riferimenti
+See upstream README for details on creating a Windows shortcut with embedded credentials.
+
+## Build
+
+Open `NTLogin.sln` in Visual Studio, build in Release mode. The compiled binary will be placed at `NTLogin/bin/Release/NTLogin.exe`.
+
+## License
+
+MIT (inherited from upstream). See `LICENSE`.
+
+## References
 
 - Upstream: https://github.com/DeepSignalTech/NinjaTraderAutoLogin
-- Pipeline documentation: `TradingHub/scripts/nt-auto-export/NT_AUTO_EXPORT_PIPELINE.md` §4.2
-- Decisione D12 (fork proprietario), D13 (fix TAB-based): vedi pipeline doc §6
+- Tab-based approach originally suggested on NinjaTrader Support Forum: [thread](https://forum.ninjatrader.com/forum/ninjatrader-8/platform-technical-support-aa/1237868-starting-up-ninjatrader-desktop-8-1-without-typing-username-and-password-every-time)
